@@ -1,66 +1,130 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [products, setProducts] = useState([]);
+  const [quantities, setQuantities] = useState({});
+  const [couponCode, setCouponCode] = useState("");
+  const [message, setMessage] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then(res => res.json())
+      .then(data => setProducts(data));
+  }, []);
+
+  const handleQuantityChange = (id, value) => {
+    setQuantities({
+      ...quantities,
+      [id]: Number(value),
+    });
+  };
+
+  const placeOrder = async (productId) => {
+    const quantity = quantities[productId] || 1;
+
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userEmail: "test@test.com",
+        products: [
+          {
+            productId,
+            quantity,
+          },
+        ],
+        couponCode: couponCode || undefined,
+      }),
+    });
+
+    const data = await res.json();
+    setPopupMessage(
+      data.message + " | Status: " + data.order?.status
+    );
+    setShowPopup(true);
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-10">
+      <h1 className="text-4xl font-bold text-center mb-10 text-blue-700">
+        MedTech E-Commerce
+      </h1>
+
+      <div className="mb-6 text-center">
+        <input
+          type="text"
+          placeholder="Enter Coupon Code"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value)}
+          className="border px-4 py-2 rounded-lg mr-2"
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-8">
+        {products.map((p) => (
+          <div
+            key={p._id}
+            className="bg-white rounded-xl shadow-lg p-6 hover:scale-105 transition"
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <h2 className="text-xl font-semibold mb-2">
+              {p.name}
+            </h2>
+
+            <p className="text-gray-600 mb-3">
+              {p.description}
+            </p>
+
+            <p className="text-green-600 font-bold text-lg mb-3">
+              ₹{p.price}
+            </p>
+
+            {p.prescriptionRequired && (
+              <p className="text-red-500 text-sm mb-3">
+                Prescription Required
+              </p>
+            )}
+
+            <input
+              type="number"
+              min="1"
+              defaultValue="1"
+              onChange={(e) =>
+                handleQuantityChange(p._id, e.target.value)
+              }
+              className="border w-full px-3 py-2 rounded mb-3"
             />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+            <button
+              onClick={() => placeOrder(p._id)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-700 transition"
+            >
+              Place Order
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {showPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-96 text-center">
+            <h2 className="text-xl font-semibold mb-4 text-green-600">
+              Order Status
+            </h2>
+
+            <p className="mb-4">{popupMessage}</p>
+
+            <button
+              onClick={() => setShowPopup(false)}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Close
+            </button>
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }
