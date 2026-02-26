@@ -7,12 +7,14 @@ const ProductSchema = new mongoose.Schema(
         description: String,
         price: Number,
         stock: Number,
-        prescriptionRequired: {
-            type: Boolean,
-            default: false,
+        prescriptionRequired: Boolean,
+        image: {
+            type: String,
+            required: true,
         },
     },
     { timestamps: true }
 );
 
-export default mongoose.models.Product || mongoose.model("Product", ProductSchema);
+export default mongoose.models.Product ||
+    mongoose.model("Product", ProductSchema);

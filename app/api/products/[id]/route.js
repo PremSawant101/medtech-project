@@ -1,54 +1,73 @@
-import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
-import User from "@/models/User";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-export async function PUT(req, context) {
-    await connectDB();
+export async function PUT(req, { params }) {
+    try {
+        await connectDB();
 
-    const { id } = await context.params;   // ✅ Await params (important)
+        const session = await getServerSession(authOptions);
 
-    const {
-        email,
-        name,
-        category,
-        description,
-        price,
-        stock,
-        prescriptionRequired
-    } = await req.json();
+        if (!session || session.user.role !== "admin") {
+            return Response.json(
+                { message: "Unauthorized" },
+                { status: 403 }
+            );
+        }
 
-    const user = await User.findOne({ email });
+        const { id } = params;
+        const { name, description, price, image } = await req.json();
 
-    if (!user || user.role !== "admin") {
+        const updatedProduct = await Product.findByIdAndUpdate(
+            id,
+            {
+                name,
+                description,
+                price,
+                image,
+            },
+            { new: true }
+        );
+
+        return Response.json({
+            message: "Product updated successfully",
+            product: updatedProduct,
+        });
+
+    } catch (error) {
         return Response.json(
-            { message: "Unauthorized. Admin only." },
-            { status: 403 }
+            { message: "Server error" },
+            { status: 500 }
         );
     }
+}
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-        id,
-        {
-            name,
-            category,
-            description,
-            price,
-            stock,
-            prescriptionRequired,
-        },
-        { returnDocument: "after" }   // ✅ updated syntax
-    );
+export async function DELETE(req, { params }) {
+    try {
+        await connectDB();
 
-    if (!updatedProduct) {
+        const session = await getServerSession(authOptions);
+
+        if (!session || session.user.role !== "admin") {
+            return Response.json(
+                { message: "Unauthorized" },
+                { status: 403 }
+            );
+        }
+
+        const { id } = params;
+
+        await Product.findByIdAndDelete(id);
+
+        return Response.json({
+            message: "Product deleted successfully",
+        });
+
+    } catch (error) {
         return Response.json(
-            { message: "Product not found" },
-            { status: 404 }
+            { message: "Server error" },
+            { status: 500 }
         );
     }
-
-    return Response.json({
-        message: "Product updated successfully",
-        product: updatedProduct,
-    });
 }

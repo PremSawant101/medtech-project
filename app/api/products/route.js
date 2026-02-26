@@ -1,48 +1,66 @@
 import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
 import User from "@/models/User";
+import { NextResponse } from "next/server";
 
 export async function GET() {
-    await connectDB();
+    try {
+        await connectDB();
 
-    const products = await Product.find();
-    return Response.json(products);
+        const products = await Product.find();
+
+        return NextResponse.json(products);
+    } catch (error) {
+        return NextResponse.json(
+            { message: "Server error" },
+            { status: 500 }
+        );
+    }
 }
 
 export async function POST(req) {
-    await connectDB();
+    try {
+        await connectDB();
 
-    const {
-        email,
-        name,
-        category,
-        description,
-        price,
-        stock,
-        prescriptionRequired
-    } = await req.json();
+        const {
+            email,
+            name,
+            category,
+            description,
+            price,
+            stock,
+            prescriptionRequired,
+            image,
+        } = await req.json();
 
-    // 🔐 Admin check
-    const user = await User.findOne({ email });
+        const user = await User.findOne({ email });
 
-    if (!user || user.role !== "admin") {
-        return Response.json(
-            { message: "Unauthorized. Admin only." },
-            { status: 403 }
+        if (!user || user.role !== "admin") {
+            return NextResponse.json(
+                { message: "Unauthorized. Admin only." },
+                { status: 403 }
+            );
+        }
+
+        const product = await Product.create({
+            name,
+            category,
+            description,
+            price,
+            stock,
+            prescriptionRequired,
+            image,
+        });
+
+        return NextResponse.json({
+            message: "Product created successfully",
+            product,
+        });
+
+    } catch (error) {
+        return NextResponse.json(
+            { message: "Server error" },
+            { status: 500 }
         );
     }
-
-    const product = await Product.create({
-        name,
-        category,
-        description,
-        price,
-        stock,
-        prescriptionRequired,
-    });
-
-    return Response.json({
-        message: "Product created successfully",
-        product,
-    });
 }

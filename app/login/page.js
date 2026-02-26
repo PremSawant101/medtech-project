@@ -1,79 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export default function Login() {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [message, setMessage] = useState("");
+export default function LoginPage() {
+    const { data: session, status } = useSession();
     const router = useRouter();
 
-    async function handleLogin(e) {
-        e.preventDefault();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
-        const res = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email, password }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            // 🔥 Save logged in user in localStorage
-            localStorage.setItem("user", JSON.stringify(data.user));
-
-            setMessage("Login successful!");
-
-            // 🔥 Redirect based on role
-            if (data.user.role === "admin") {
+    useEffect(() => {
+        if (status === "authenticated") {
+            if (session.user.role === "admin") {
                 router.push("/admin");
             } else {
                 router.push("/");
             }
-        } else {
-            setMessage(data.message || "Login failed");
         }
+    }, [status, session, router]);
+
+    if (status === "loading") {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#100C08] text-white">
+                Loading...
+            </div>
+        );
     }
 
+    const handleLogin = async () => {
+        await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+        });
+    };
+
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-green-100">
-            <div className="bg-white shadow-xl rounded-xl p-8 w-96">
-                <h2 className="text-2xl font-bold text-center mb-6 text-blue-700">
+        <div className="min-h-screen flex items-center justify-center bg-[#100C08]">
+            <div className="w-full max-w-md bg-[#FFFAF0] rounded-2xl shadow-2xl p-8">
+                <h2 className="text-3xl font-bold text-center text-[#6B8E23] mb-6">
                     MedTech Login
                 </h2>
 
-                <form onSubmit={handleLogin}>
-                    <input
-                        type="email"
-                        placeholder="Enter Email"
-                        required
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full border px-4 py-2 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
+                <input
+                    type="email"
+                    placeholder="Email"
+                    className="w-full px-4 py-2 border rounded-lg mb-4"
+                    onChange={(e) => setEmail(e.target.value)}
+                />
 
-                    <input
-                        type="password"
-                        placeholder="Enter Password"
-                        required
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full border px-4 py-2 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
+                <input
+                    type="password"
+                    placeholder="Password"
+                    className="w-full px-4 py-2 border rounded-lg mb-6"
+                    onChange={(e) => setPassword(e.target.value)}
+                />
 
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                <button
+                    onClick={handleLogin}
+                    className="w-full bg-[#6B8E23] text-white py-2 rounded-lg mb-4"
+                >
+                    Login
+                </button>
+
+                <div className="text-center mb-4">OR</div>
+
+                <button
+                    onClick={() => signIn("google")}
+                    className="w-full border py-2 rounded-lg"
+                >
+                    Continue with Google
+                </button>
+                <p className="text-center mt-4">
+                    Don't have account?
+                    <span
+                        onClick={() => router.push("/signup")}
+                        className="text-[#6B8E23] cursor-pointer ml-1"
                     >
-                        Login
-                    </button>
-                </form>
-
-                {message && (
-                    <p className="mt-4 text-center text-red-500">{message}</p>
-                )}
+                        Sign Up
+                    </span>
+                </p>
             </div>
         </div>
     );

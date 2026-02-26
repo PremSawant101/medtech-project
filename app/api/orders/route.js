@@ -11,7 +11,6 @@ export async function POST(req) {
     let totalAmount = 0;
     let requiresPrescription = false;
 
-    // 🔥 Calculate total & check prescription
     for (let item of products) {
         const product = await Product.findById(item.productId);
 
@@ -29,7 +28,6 @@ export async function POST(req) {
         }
     }
 
-    // 🔥 Apply coupon if provided
     if (couponCode) {
         const coupon = await Coupon.findOne({ code: couponCode });
 

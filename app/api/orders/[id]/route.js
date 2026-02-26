@@ -9,7 +9,6 @@ export async function PUT(req, context) {
 
     const { email, status } = await req.json();
 
-    // Admin check
     const user = await User.findOne({ email });
 
     if (!user || user.role !== "admin") {

@@ -1,3 +1,14 @@
+import connectDB from "@/lib/mongodb";
+import Coupon from "@/models/Coupon";
+import User from "@/models/User";
+
+export async function GET() {
+    await connectDB();
+
+    const coupons = await Coupon.find();
+    return Response.json(coupons);
+}
+
 export async function POST(req) {
     await connectDB();
 
@@ -12,7 +23,6 @@ export async function POST(req) {
         );
     }
 
-    // 🔥 Check if coupon already exists
     const existingCoupon = await Coupon.findOne({ code });
 
     if (existingCoupon) {
